@@ -7,14 +7,13 @@ from starlette.requests import Request
 
 from database_config import redis
 
-app= FastAPI()
+app = FastAPI()
 app.add_middleware(
-CORSMiddleware,
-allow_origins =['http://localhost:3000/'],
-allow_methods=['*'],
-allow_headers=['*']
+    CORSMiddleware,
+    allow_origins=['http://localhost:3000/'],
+    allow_methods=['*'],
+    allow_headers=['*']
 )
-
 
 
 class Order(HashModel):
@@ -23,14 +22,16 @@ class Order(HashModel):
     fee: float
     total: float
     quantity: int
-    status: str #pending, completed, refunded
+    status: str  # pending, completed, refunded
 
     class Meta:
         database = redis
 
-@app.get("/")
+
+@app.get("/{pk}")
 def get(pk: str):
     return Order.get(pk)
+
 
 @app.post("/")
 async def create(request: Request, background_tasks: BackgroundTasks):
@@ -41,19 +42,19 @@ async def create(request: Request, background_tasks: BackgroundTasks):
     order = Order(
         product_id=body['id'],
         price=product['price'],
-        fee =0.2 * product['price'],
-        total = 1.2 * product['price'],
-        quantity = body['quantity'],
+        fee=0.2 * product['price'],
+        total=1.2 * product['price'],
+        quantity=body['quantity'],
         status='pending'
     )
     order.save()
 
-    background_tasks.add_task(order_completed,order)
+    background_tasks.add_task(order_completed, order)
     return order
+
 
 def order_completed(order: Order):
     time.sleep(5)
-    order.status='completed'
-    order.save()  
-    redis.xadd('order_completed',order.dict(), '*')
-       
+    order.status = 'completed'
+    order.save()
+    redis.xadd('order_completed', order.dict(), '*')
